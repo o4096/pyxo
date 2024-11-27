@@ -19,6 +19,58 @@ class Game():
 		# self.plr_turn= 0
 		self.start()
 
+	def minimax_symmetry_reduction(state, depth, player):
+		pass #TODO
+	# 	state = canonical_form(state)  # Use canonical form for state
+
+	# 	if game_over(state):
+	# 		return evaluate(state), None
+
+	# 	if depth == 0:
+	# 		return evaluate(state), None
+
+	# 	best = None
+	# 	if player == +1:  # AI's turn (maximize)
+	# 		value = -float('inf')
+	# 		for x, y in empty_cells(state):
+	# 			new_state = copy.deepcopy(state)
+	# 			set_move(x, y, player, new_state)
+	# 			score,  = minimax(newstate, depth - 1, -player)
+	# 			if score > value:
+	# 				value, best = score, (x, y)
+	# 	else:  # Human's turn (minimize)
+	# 		value = float('inf')
+	# 		for x, y in empty_cells(state):
+	# 			new_state = copy.deepcopy(state)
+	# 			set_move(x, y, player, new_state)
+	# 			score,  = minimax(newstate, depth - 1, -player)
+	# 			if score < value:
+	# 				value, best = score, (x, y)
+	# 	return value, best
+
+	# def canonical_form(state):
+	# 	"""
+	# 	Find the canonical form of the board state by considering all rotations
+	# 	and reflections, and returning the lexicographically smallest form.
+	# 	"""
+	# 	transformations = [state]
+
+	# 	#Generate rotations
+	# 	for _ in range(3):
+	# 		state = rotate90(state)
+	# 		transformations.append(state)
+
+	# 	#Reflect the original state and rotated states
+	# 	state_reflected = reflect_horizontal(state)
+	# 	transformations.append(state_reflected)
+	# 	for _ in range(3):
+	# 		state_reflected = rotate_90(state_reflected)
+	# 		transformations.append(state_reflected)
+
+	# 	#Return the lexicographically smallest state
+	# 	return min(transformations, key=lambda s: str(s))
+
+
 	def minimax(self, depth, player):
 		best= [-1, -1, -math.inf if player==COMP else math.inf]
 	
@@ -39,6 +91,12 @@ class Game():
 				if score[2]<best[2]:
 					best= score #min value
 		return best
+	def minimax_alpha_beta(self):
+		pass#TODO
+	def heuristic1(self):
+		pass#TODO
+	def heuristic2(self):
+		pass#TODO
 
 	def start(self):
 		self.state= [[0,0,0] for _ in range(3)]
@@ -76,6 +134,7 @@ class Game():
 		depth= len(self.empty_cells())
 		if depth==0 or self.end():
 			return
+		#TODO
 		move= self.minimax(depth, COMP)
 		x, y= move[0], move[1]
 		self.state[x][y]= COMP
