@@ -19,57 +19,6 @@ class Game():
 		# self.plr_turn= 0
 		self.start()
 
-	def minimax_symmetry_reduction(state, depth, player):
-		pass #TODO
-	# 	state = canonical_form(state)  # Use canonical form for state
-
-	# 	if game_over(state):
-	# 		return evaluate(state), None
-
-	# 	if depth == 0:
-	# 		return evaluate(state), None
-
-	# 	best = None
-	# 	if player == +1:  # AI's turn (maximize)
-	# 		value = -float('inf')
-	# 		for x, y in empty_cells(state):
-	# 			new_state = copy.deepcopy(state)
-	# 			set_move(x, y, player, new_state)
-	# 			score,  = minimax(newstate, depth - 1, -player)
-	# 			if score > value:
-	# 				value, best = score, (x, y)
-	# 	else:  # Human's turn (minimize)
-	# 		value = float('inf')
-	# 		for x, y in empty_cells(state):
-	# 			new_state = copy.deepcopy(state)
-	# 			set_move(x, y, player, new_state)
-	# 			score,  = minimax(newstate, depth - 1, -player)
-	# 			if score < value:
-	# 				value, best = score, (x, y)
-	# 	return value, best
-
-	# def canonical_form(state):
-	# 	"""
-	# 	Find the canonical form of the board state by considering all rotations
-	# 	and reflections, and returning the lexicographically smallest form.
-	# 	"""
-	# 	transformations = [state]
-
-	# 	#Generate rotations
-	# 	for _ in range(3):
-	# 		state = rotate90(state)
-	# 		transformations.append(state)
-
-	# 	#Reflect the original state and rotated states
-	# 	state_reflected = reflect_horizontal(state)
-	# 	transformations.append(state_reflected)
-	# 	for _ in range(3):
-	# 		state_reflected = rotate_90(state_reflected)
-	# 		transformations.append(state_reflected)
-
-	# 	#Return the lexicographically smallest state
-	# 	return min(transformations, key=lambda s: str(s))
-
 	def minimax(self, depth, player):
 		best= [-1, -1, -math.inf if player==COMP else math.inf]
 	
@@ -90,10 +39,58 @@ class Game():
 				if score[2]<best[2]:
 					best= score #min value
 		return best
-	def minimax_alpha_beta(self):
-		pass#TODO
+
+	def minimax_alpha_beta(self, depth, alpha, beta, player):
+		best = [-1, -1, -math.inf if player == COMP else math.inf]
+
+		if depth == 0 or self.end():  # Leaf node
+			score = self.evaluate()
+			return [-1, -1, score]
+
+		for cell in self.empty_cells():
+			x, y = cell
+			self.state[x][y] = player
+			score = self.minimax_alpha_beta(depth - 1, alpha, beta, -player)
+			self.state[x][y] = 0
+			score[0], score[1] = x, y
+
+			if player == COMP:  # Maximize AI
+				if score[2] > best[2]:
+					best = score
+				alpha = max(alpha, score[2])
+			else:  # Minimize Human
+				if score[2] < best[2]:
+					best = score
+				beta = min(beta, score[2])
+
+			if beta <= alpha:  # Prune remaining branches
+				break
+		return best
+
+	def canonical_form(self, state):
+		"""
+		Generate the canonical form of the board state.
+		Find the lexicographically smallest form among rotations and reflections.
+		"""
+		transformations = [state]
+
+		# Generate rotations (90, 180, 270 degrees)
+		for _ in range(3):
+			state = list(zip(*state[::-1]))  # Rotate 90 degrees clockwise
+			transformations.append(state)
+
+		# Reflect horizontally
+		reflected = [row[::-1] for row in state]
+		transformations.append(reflected)
+
+		# Reflect vertically
+		reflected = state[::-1]
+		transformations.append(reflected)
+
+		# Return the lexicographically smallest state
+		return min(transformations, key=lambda s: str(s))
 	
-	def heuristic1(self, state):
+	def heuristic1(self):
 		"""Basic heuristic: Count potential winning lines."""
 		score = 0
 		for line in self.get_win_lines():
@@ -103,7 +100,7 @@ class Game():
 				score -= 1
 		return score
 
-	def heuristic2(self, state):
+	def heuristic2(self):
 		"""Advanced heuristic: Weighted evaluation of game state."""
 		score = 0
 		weights = [3, 2, 1]  # Example weights for positions closer to forming lines
@@ -199,14 +196,12 @@ class Application():
 
 		mb_algo= tk.Menu(mb, tearoff=False)
 		# mb_algo.add_checkbutton(label='MiniMax',     command=partial(toggle_func, self.game.use_minimax))
-		mb_algo.add_checkbutton(label='MiniMax',     variable=self.game.use_minimax)
-		mb_algo.add_checkbutton(label='Heuristic 1', variable=self.game.use_Heuristic1)
-		mb_algo.add_checkbutton(label='Heuristic 2', variable=self.game.use_Heuristic2)
+		mb_algo.add_checkbutton(label='MiniMax',            variable=self.game.use_minimax)
+		mb_algo.add_checkbutton(label='Heuristic 1',        variable=self.game.use_Heuristic1)
+		mb_algo.add_checkbutton(label='Heuristic 2',        variable=self.game.use_Heuristic2)
+		mb_algo.add_checkbutton(label='Alpha-Beta Pruning', variable=self.game.use_alpha_beta_pruning)
+		mb_algo.add_checkbutton(label='Symmetry Reduction', variable=self.game.use_symmetry_reduction)
 		#TODO
-
-		mb_opti= tk.Menu(mb, tearoff=False)
-		mb_opti.add_checkbutton(label='Alpha-Beta Pruning', variable=self.game.use_alpha_beta_pruning)
-		mb_opti.add_checkbutton(label='Symmetry Reduction', variable=self.game.use_symmetry_reduction)
 
 		mb_view= tk.Menu(mb, tearoff=False)
 		mb_view.add_checkbutton(label='Dark Mode', command=self.toggle_darkmode)
@@ -216,7 +211,7 @@ class Application():
 
 		mb.add_cascade(menu=mb_game, label='Game')
 		mb.add_cascade(menu=mb_algo, label='Algorithm')
-		mb.add_cascade(menu=mb_opti, label='Optimizations')
+		# mb.add_cascade(menu=mb_opti, label='Optimizations')
 		mb.add_cascade(menu=mb_help, label='Help')
 		mb.add_cascade(menu=mb_view, label='View')
 		self.root.config(menu=mb)
