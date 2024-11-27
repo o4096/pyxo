@@ -13,7 +13,7 @@ class Game():
 	def __init__(self):
 		self.use_alpha_beta_pruning= tk.BooleanVar()
 		self.use_symmetry_reduction= tk.BooleanVar()
-		self.use_minimax= tk.BooleanVar(value=True)
+		self.use_minimax= tk.BooleanVar()
 		self.use_Heuristic1= tk.BooleanVar()
 		self.use_Heuristic2= tk.BooleanVar()
 		# self.plr_turn= 0
@@ -70,7 +70,6 @@ class Game():
 	# 	#Return the lexicographically smallest state
 	# 	return min(transformations, key=lambda s: str(s))
 
-
 	def minimax(self, depth, player):
 		best= [-1, -1, -math.inf if player==COMP else math.inf]
 	
@@ -94,7 +93,7 @@ class Game():
 	def minimax_alpha_beta(self):
 		pass#TODO
 	def heuristic1(self):
-		pass#TODO
+		print('')
 	def heuristic2(self):
 		pass#TODO
 
@@ -134,8 +133,17 @@ class Game():
 		depth= len(self.empty_cells())
 		if depth==0 or self.end():
 			return
-		#TODO
-		move= self.minimax(depth, COMP)
+		if self.use_minimax.get():
+			move= self.minimax(depth, COMP)
+		elif self.use_symmetry_reduction.get():
+			move= self.minimax_symmetry_reduction(depth, COMP)
+		elif self.use_alpha_beta_pruning.get():
+			move= self.minimax_alpha_beta()
+		elif self.use_Heuristic1.get():
+			move= self.heuristic1()
+		elif self.use_Heuristic2.get():
+			move= self.heuristic2()
+		
 		x, y= move[0], move[1]
 		self.state[x][y]= COMP
 
