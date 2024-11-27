@@ -93,10 +93,27 @@ class Game():
 		return best
 	def minimax_alpha_beta(self):
 		pass#TODO
-	def heuristic1(self):
-		pass#TODO
-	def heuristic2(self):
-		pass#TODO
+	
+	def heuristic1(self, state):
+    """Basic heuristic: Count potential winning lines."""
+    score = 0
+    for line in self.get_win_lines():
+        if line.count(COMP) > 0 and line.count(HUMAN) == 0:
+            score += 1
+        if line.count(HUMAN) > 0 and line.count(COMP) == 0:
+            score -= 1
+    return score
+
+	def heuristic2(self, state):
+    """Advanced heuristic: Weighted evaluation of game state."""
+    score = 0
+    weights = [3, 2, 1]  # Example weights for positions closer to forming lines
+    for line in self.get_win_lines():
+        if line.count(COMP) > 0 and line.count(HUMAN) == 0:
+            score += weights[line.count(COMP) - 1]
+        if line.count(HUMAN) > 0 and line.count(COMP) == 0:
+            score -= weights[line.count(HUMAN) - 1]
+    return score
 
 	def start(self):
 		self.state= [[0,0,0] for _ in range(3)]
