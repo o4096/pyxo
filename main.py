@@ -17,12 +17,6 @@ USE_SYMMETRY=   4
 
 class Game():
 	def __init__(self):
-		# self.use_alpha_beta_pruning= tk.BooleanVar(value=False)
-		# self.use_symmetry_reduction= tk.BooleanVar(value=False)
-		# self.use_minimax= tk.BooleanVar(value=False)
-		# self.use_Heuristic1= tk.BooleanVar(value=False)
-		# self.use_Heuristic2= tk.BooleanVar(value=False)
-
 		self.algo= tk.IntVar(value=USE_MINIMAX)
 		self.start()
 
@@ -155,19 +149,19 @@ class Game():
 		if depth==0 or self.end():
 			return
 		
-		if   self.algo==USE_MINIMAX:
+		if   self.algo.get()==USE_MINIMAX:
 			move= self.minimax(depth, COMP)
 			print('using minimax')
-		elif self.algo==USE_HUERISTIC1:
+		elif self.algo.get()==USE_HUERISTIC1:
 			move= self.heuristic1()
 			print('using hueristic1')
-		elif self.algo==USE_HUERISTIC2:
+		elif self.algo.get()==USE_HUERISTIC2:
 			move= self.heuristic2()
 			print('using hueristic2')
-		elif self.algo==USE_ALPHA_BETA:
+		elif self.algo.get()==USE_ALPHA_BETA:
 			move= self.minimax_alpha_beta(depth, -math.inf, math.inf, COMP)
 			print('using alpha beta')
-		elif self.algo==USE_SYMMETRY:
+		elif self.algo.get()==USE_SYMMETRY:
 			move= self.minimax_symmetry_reduction(depth, COMP)
 			print('using symmetry')
 
