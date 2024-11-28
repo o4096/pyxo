@@ -8,16 +8,17 @@ from tkinter import messagebox
 EMPTY= 0
 HUMAN= -1
 COMP=  1
-
-USE_MINIMAX=    0
-USE_HUERISTIC1= 1
-USE_HUERISTIC2= 2
-USE_ALPHA_BETA= 3
-USE_SYMMETRY=   4
+algorithms=[
+	'Minimax',
+	'Minimax w/Alpha Beta',
+	'Minimax w/Symmetry Reduction',
+	'Hueristic 1',
+	'Hueristic 2',
+]
 
 class Game():
 	def __init__(self):
-		self.algo= tk.IntVar(value=USE_MINIMAX)
+		self.algo= tk.StringVar(value=algorithms[0])
 		self.start()
 
 	def minimax(self, depth, player):
@@ -51,7 +52,7 @@ class Game():
 		for cell in self.empty_cells():
 			x, y = cell
 			self.state[x][y] = player
-			score = self.minimax_alpha_beta(depth - 1, alpha, beta, -player)
+			score = self.minimax_alpha_beta(depth-1, alpha, beta, -player)
 			self.state[x][y] = 0
 			score[0], score[1] = x, y
 
@@ -149,21 +150,21 @@ class Game():
 		if depth==0 or self.end():
 			return
 		
-		if   self.algo.get()==USE_MINIMAX:
+		if   self.algo.get()=='Minimax':
 			move= self.minimax(depth, COMP)
 			print('using minimax')
-		elif self.algo.get()==USE_HUERISTIC1:
-			move= self.heuristic1()
-			print('using hueristic1')
-		elif self.algo.get()==USE_HUERISTIC2:
-			move= self.heuristic2()
-			print('using hueristic2')
-		elif self.algo.get()==USE_ALPHA_BETA:
+		elif self.algo.get()=='Minimax w/Alpha Beta':
 			move= self.minimax_alpha_beta(depth, -math.inf, math.inf, COMP)
 			print('using alpha beta')
-		elif self.algo.get()==USE_SYMMETRY:
+		elif self.algo.get()=='Minimax w/Symmetry Reduction':
 			move= self.minimax_symmetry_reduction(depth, COMP)
 			print('using symmetry')
+		elif self.algo.get()=='Hueristic 1':
+			move= self.heuristic1()
+			print('using hueristic1')
+		elif self.algo.get()=='Hueristic 2':
+			print('using hueristic2')
+			move= self.heuristic2()
 
 		else:
 			messagebox.showinfo('ERROR', 'No Algorithm Selected')
@@ -208,13 +209,8 @@ class Application():
 
 		mb_algo= tk.Menu(mb, tearoff=False)
 
-
-		mb_algo.add_radiobutton(label='MiniMax',            variable=self.game.algo, value=0)
-		mb_algo.add_radiobutton(label='Heuristic 1',        variable=self.game.algo, value=1)
-		mb_algo.add_radiobutton(label='Heuristic 2',        variable=self.game.algo, value=2)
-		mb_algo.add_radiobutton(label='Alpha-Beta Pruning', variable=self.game.algo, value=3)
-		mb_algo.add_radiobutton(label='Symmetry Reduction', variable=self.game.algo, value=4)
-		#TODO
+		for algo in algorithms:
+			mb_algo.add_radiobutton(label=algo, variable=self.game.algo, value=algo)
 
 		mb_view= tk.Menu(mb, tearoff=False)
 		mb_view.add_checkbutton(label='Dark Mode', command=self.toggle_darkmode)
