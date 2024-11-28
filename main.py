@@ -9,14 +9,21 @@ EMPTY= 0
 HUMAN= -1
 COMP=  1
 
+USE_MINIMAX=    0
+USE_HUERISTIC1= 1
+USE_HUERISTIC2= 2
+USE_ALPHA_BETA= 3
+USE_SYMMETRY=   4
+
 class Game():
 	def __init__(self):
-		self.use_alpha_beta_pruning= tk.BooleanVar(value=False)
-		self.use_symmetry_reduction= tk.BooleanVar(value=False)
-		self.use_minimax= tk.BooleanVar(value=False)
-		self.use_Heuristic1= tk.BooleanVar(value=False)
-		self.use_Heuristic2= tk.BooleanVar(value=False)
-		# self.plr_turn= 0
+		# self.use_alpha_beta_pruning= tk.BooleanVar(value=False)
+		# self.use_symmetry_reduction= tk.BooleanVar(value=False)
+		# self.use_minimax= tk.BooleanVar(value=False)
+		# self.use_Heuristic1= tk.BooleanVar(value=False)
+		# self.use_Heuristic2= tk.BooleanVar(value=False)
+
+		self.algo= tk.IntVar(value=USE_MINIMAX)
 		self.start()
 
 	def minimax(self, depth, player):
@@ -147,16 +154,26 @@ class Game():
 		depth= len(self.empty_cells())
 		if depth==0 or self.end():
 			return
-		if self.use_minimax.get():
+		
+		if   self.algo==USE_MINIMAX:
 			move= self.minimax(depth, COMP)
-		elif self.use_symmetry_reduction.get():
-			move= self.minimax_symmetry_reduction(depth, COMP)
-		elif self.use_alpha_beta_pruning.get():
-			move= self.minimax_alpha_beta()
-		elif self.use_Heuristic1.get():
+			print('using minimax')
+		elif self.algo==USE_HUERISTIC1:
 			move= self.heuristic1()
-		elif self.use_Heuristic2.get():
+			print('using hueristic1')
+		elif self.algo==USE_HUERISTIC2:
 			move= self.heuristic2()
+			print('using hueristic2')
+		elif self.algo==USE_ALPHA_BETA:
+			move= self.minimax_alpha_beta(depth, -math.inf, math.inf, COMP)
+			print('using alpha beta')
+		elif self.algo==USE_SYMMETRY:
+			move= self.minimax_symmetry_reduction(depth, COMP)
+			print('using symmetry')
+
+		else:
+			messagebox.showinfo('ERROR', 'No Algorithm Selected')
+			return
 
 		x, y= move[0], move[1]
 		self.state[x][y]= COMP
@@ -166,6 +183,7 @@ class Game():
 			self.state[x][y]= HUMAN
 		else:
 			print('I got here')#TODO test if this is even reachable otherwise inline this code
+
 class Application():
 	def __init__(self):
 		self.root= tk.Tk()
@@ -193,14 +211,15 @@ class Application():
 		mb_game= tk.Menu(mb, tearoff=False)
 		mb_game.add_command(label='New Game', command=self.new_game)
 		mb_game.add_command(label='Exit',     command=partial(exit, 0))
-		var = tk.StringVar()
+
 		mb_algo= tk.Menu(mb, tearoff=False)
-		# mb_algo.add_checkbutton(label='MiniMax',     command=partial(toggle_func, self.game.use_minimax))
-		mb_algo.add_radiobutton(label='MiniMax',            variable=var, value="MiniMax", command=self.game.use_minimax.set(True))
-		mb_algo.add_radiobutton(label='Heuristic 1',        variable=var, value="Heuristic 1", command=self.game.use_Heuristic1.set(True))
-		mb_algo.add_radiobutton(label='Heuristic 2',        variable=var, value="Heuristic 2", command=self.game.use_Heuristic2.set(True))
-		mb_algo.add_radiobutton(label='Alpha-Beta Pruning', variable=var, value="Alpha-Beta Pruning", command=self.game.use_alpha_beta_pruning.set(True))
-		mb_algo.add_radiobutton(label='Symmetry Reduction', variable=var, value="Symmetry Reduction", command=self.game.use_symmetry_reduction.set(True))
+
+
+		mb_algo.add_radiobutton(label='MiniMax',            variable=self.game.algo, value=0)
+		mb_algo.add_radiobutton(label='Heuristic 1',        variable=self.game.algo, value=1)
+		mb_algo.add_radiobutton(label='Heuristic 2',        variable=self.game.algo, value=2)
+		mb_algo.add_radiobutton(label='Alpha-Beta Pruning', variable=self.game.algo, value=3)
+		mb_algo.add_radiobutton(label='Symmetry Reduction', variable=self.game.algo, value=4)
 		#TODO
 
 		mb_view= tk.Menu(mb, tearoff=False)
@@ -234,11 +253,6 @@ class Application():
 		self.toggle_darkmode()
 
 	def start(self):
-		self.use_alpha_beta_pruning= tk.BooleanVar(value=False)
-		self.use_symmetry_reduction= tk.BooleanVar(value=False)
-		self.use_minimax= tk.BooleanVar(value=False)
-		self.use_Heuristic1= tk.BooleanVar(value=False)
-		self.use_Heuristic2= tk.BooleanVar(value=False)
 		self.game.start()
 		if not messagebox.askyesno('New Game', 'Would you like to go first?'):
 			self.game.input_ai()
