@@ -11,11 +11,11 @@ COMP=  1
 
 class Game():
 	def __init__(self):
-		self.use_alpha_beta_pruning= tk.BooleanVar()
-		self.use_symmetry_reduction= tk.BooleanVar()
-		self.use_minimax= tk.BooleanVar()
-		self.use_Heuristic1= tk.BooleanVar()
-		self.use_Heuristic2= tk.BooleanVar()
+		self.use_alpha_beta_pruning= tk.BooleanVar(value=False)
+		self.use_symmetry_reduction= tk.BooleanVar(value=False)
+		self.use_minimax= tk.BooleanVar(value=False)
+		self.use_Heuristic1= tk.BooleanVar(value=False)
+		self.use_Heuristic2= tk.BooleanVar(value=False)
 		# self.plr_turn= 0
 		self.start()
 
@@ -157,7 +157,7 @@ class Game():
 			move= self.heuristic1()
 		elif self.use_Heuristic2.get():
 			move= self.heuristic2()
-		
+
 		x, y= move[0], move[1]
 		self.state[x][y]= COMP
 
@@ -187,20 +187,20 @@ class Application():
 		self.root.config(bg=bg)
 		self.buttons= [[tk.Button(self.root, font=('Helvetica', 20), width=4, height=2) for _ in range(3)] for _ in range(3)]
 		self.game= Game()
-
+		
 		mb= tk.Menu(self.root)
 		
 		mb_game= tk.Menu(mb, tearoff=False)
 		mb_game.add_command(label='New Game', command=self.new_game)
 		mb_game.add_command(label='Exit',     command=partial(exit, 0))
-
+		var = tk.StringVar()
 		mb_algo= tk.Menu(mb, tearoff=False)
 		# mb_algo.add_checkbutton(label='MiniMax',     command=partial(toggle_func, self.game.use_minimax))
-		mb_algo.add_checkbutton(label='MiniMax',            variable=self.game.use_minimax)
-		mb_algo.add_checkbutton(label='Heuristic 1',        variable=self.game.use_Heuristic1)
-		mb_algo.add_checkbutton(label='Heuristic 2',        variable=self.game.use_Heuristic2)
-		mb_algo.add_checkbutton(label='Alpha-Beta Pruning', variable=self.game.use_alpha_beta_pruning)
-		mb_algo.add_checkbutton(label='Symmetry Reduction', variable=self.game.use_symmetry_reduction)
+		mb_algo.add_radiobutton(label='MiniMax',            variable=var, value="MiniMax", command=self.game.use_minimax.set(True))
+		mb_algo.add_radiobutton(label='Heuristic 1',        variable=var, value="Heuristic 1", command=self.game.use_Heuristic1.set(True))
+		mb_algo.add_radiobutton(label='Heuristic 2',        variable=var, value="Heuristic 2", command=self.game.use_Heuristic2.set(True))
+		mb_algo.add_radiobutton(label='Alpha-Beta Pruning', variable=var, value="Alpha-Beta Pruning", command=self.game.use_alpha_beta_pruning.set(True))
+		mb_algo.add_radiobutton(label='Symmetry Reduction', variable=var, value="Symmetry Reduction", command=self.game.use_symmetry_reduction.set(True))
 		#TODO
 
 		mb_view= tk.Menu(mb, tearoff=False)
@@ -234,6 +234,11 @@ class Application():
 		self.toggle_darkmode()
 
 	def start(self):
+		self.use_alpha_beta_pruning= tk.BooleanVar(value=False)
+		self.use_symmetry_reduction= tk.BooleanVar(value=False)
+		self.use_minimax= tk.BooleanVar(value=False)
+		self.use_Heuristic1= tk.BooleanVar(value=False)
+		self.use_Heuristic2= tk.BooleanVar(value=False)
 		self.game.start()
 		if not messagebox.askyesno('New Game', 'Would you like to go first?'):
 			self.game.input_ai()
