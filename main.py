@@ -92,6 +92,37 @@ class Game():
 		# Return the lexicographically smallest state
 		return min(transformations, key=lambda s: str(s))
 	
+	def minimax_symmetry_reduction(self, depth, memo, player):
+
+		canonical = self.canonical_form(self.state)
+		if canonical in memo:
+			return memo[canonical]
+		
+		best= [-1, -1, -math.inf if player==COMP else math.inf]
+	
+		if depth==0 or self.end(): #leaves
+			score= self.evaluate()
+			return [-1, -1, score]
+
+		for cell in self.empty_cells():
+			x, y= cell[0], cell[1]
+			self.state[x][y]= player
+			score= self.minimax_symmetry_reduction(depth-1, memo, -player)
+			self.state[x][y]= 0
+			score[0], score[1]= x, y
+			if player==COMP:
+				if score[2]>best[2]:
+					best= score #max value
+			else:
+				if score[2]<best[2]:
+					best= score #min value
+		memo[canonical] = best
+		return best
+		
+		
+		
+		pass
+
 	def heuristic1(self):
 		"""Basic heuristic: Count potential winning lines."""
 		score = 0
@@ -157,7 +188,7 @@ class Game():
 			move= self.minimax_alpha_beta(depth, -math.inf, math.inf, COMP)
 			print('using alpha beta')
 		elif self.algo.get()=='Minimax w/Symmetry Reduction':
-			move= self.minimax_symmetry_reduction(depth, COMP)
+			move= self.minimax_symmetry_reduction(depth,[], COMP)
 			print('using symmetry')
 		elif self.algo.get()=='Hueristic 1':
 			move= self.heuristic1()
