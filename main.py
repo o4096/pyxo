@@ -1,6 +1,5 @@
-import platform
 import os
-import math
+import platform
 from functools import partial
 import tkinter as tk
 from tkinter import messagebox
@@ -21,93 +20,94 @@ class Game():
 		self.algo= tk.StringVar(value=algorithms[0])
 		self.start()
 
-	def minimax(self, depth, player):
-		best= [-1, -1, -math.inf if player==COMP else math.inf]
+	def start(self):
+		self.state= [[EMPTY, EMPTY, EMPTY] for _ in range(3)]
+
+	def minimax(self, depth, player=COMP):
+		best_move= None
+		best_score= float('-inf') if player==COMP else float('inf')
 	
-		if depth==0 or self.end(): #leaves
-			score= self.evaluate()
-			return [-1, -1, score]
+		if depth==0 or self.end():#base case
+			return best_move, self.evaluate()
 
-		for cell in self.empty_cells():
-			x, y= cell[0], cell[1]
-			self.state[x][y]= player
-			score= self.minimax(depth-1, -player)
-			self.state[x][y]= 0
-			score[0], score[1]= x, y
-			if player==COMP:
-				if score[2]>best[2]:
-					best= score #max value
-			else:
-				if score[2]<best[2]:
-					best= score #min value
-		return best
+		for y, x in self.empty_cells():
+			self.state[y][x]= player
+			move, score= self.minimax(depth-1, -player)
+			self.state[y][x]= EMPTY
+			move= y, x
+			if player==COMP:#maximize the ai score				
+				if score>best_score:
+					best_move= move
+					best_score= score
+			else:#minimize the player score
+				if score<best_score:
+					best_move= move
+					best_score= score
+		return best_move, best_score
 
-	def minimax_alpha_beta(self, depth, alpha, beta, player):
-		best = [-1, -1, -math.inf if player == COMP else math.inf]
+	def minimax_abp(self, depth, player=COMP, alpha=float('-inf'), beta=float('inf')):
+		best_move= None
+		best_score= float('-inf') if player==COMP else float('inf')
 
-		if depth == 0 or self.end():  # Leaf node
-			score = self.evaluate()
-			return [-1, -1, score]
-
-		for cell in self.empty_cells():
-			x, y = cell
-			self.state[x][y] = player
-			score = self.minimax_alpha_beta(depth-1, alpha, beta, -player)
-			self.state[x][y] = 0
-			score[0], score[1] = x, y
-
-			if player == COMP:  # Maximize AI
-				if score[2] > best[2]:
-					best = score
-				alpha = max(alpha, score[2])
-			else:  # Minimize Human
-				if score[2] < best[2]:
-					best = score
-				beta = min(beta, score[2])
-
-			if beta <= alpha:  # Prune remaining branches
+		if depth==0 or self.end():#base case
+			return best_move, self.evaluate()
+		
+		for y, x in self.empty_cells():
+			self.state[y][x]= player
+			move, score= self.minimax_abp(depth-1, -player, alpha, beta)
+			self.state[y][x]= EMPTY
+			move= y, x
+			if player==COMP:#maximize the ai score
+				if score>best_score:
+					best_move= move
+					best_score= score
+				alpha= max(alpha, best_score)
+			else:#minimize the player score
+				if score<best_score:
+					best_move= move
+					best_score= score
+				beta= min(beta, best_score)
+			if beta<=alpha:
 				break
-		return best
+		return best_move, best_score
 
 	def canonical_form(self, state):
 		"""
 		Generate the canonical form of the board state.
 		Find the lexicographically smallest form among rotations and reflections.
 		"""
-		transformations = [state]
+		transformations= [state]
 
 		# Generate rotations (90, 180, 270 degrees)
 		for _ in range(3):
-			state = list(zip(*state[::-1]))  # Rotate 90 degrees clockwise
+			state= list(zip(*state[::-1]))  # Rotate 90 degrees clockwise
 			transformations.append(state)
 
 		# Reflect horizontally
-		reflected = [row[::-1] for row in state]
+		reflected= [row[::-1] for row in state]
 		transformations.append(reflected)
 
 		# Reflect vertically
-		reflected = state[::-1]
+		reflected= state[::-1]
 		transformations.append(reflected)
 
 		# Return the lexicographically smallest state
 		return min(transformations, key=lambda s: str(s))
 	
-	def minimax_symmetry_reduction(self, depth, memo, player):
-
-		canonical = self.canonical_form(self.state)
+	def minimax_symmetry_reduction(self, depth, player=COMP, memo=[]):
+		canonical= self.canonical_form(self.state)
 		if canonical in memo:
 			return memo[canonical]
 		
-		best= [-1, -1, -math.inf if player==COMP else math.inf]
-	
-		if depth==0 or self.end(): #leaves
-			score= self.evaluate()
-			return [-1, -1, score]
+		best= [-1, -1, float('-inf') if player==COMP else float('inf')]
+
+		if depth==0 or self.end():#base case
+			return [-1, -1, self.evaluate()]
 
 		for cell in self.empty_cells():
 			x, y= cell[0], cell[1]
 			self.state[x][y]= player
-			score= self.minimax_symmetry_reduction(depth-1, memo, -player)
+			score= self.minimax_symmetry_reduction(depth-1, -player, memo)
 			self.state[x][y]= 0
 			score[0], score[1]= x, y
 			if player==COMP:
@@ -116,13 +116,9 @@ class Game():
 			else:
 				if score[2]<best[2]:
 					best= score #min value
-		memo[canonical] = best
+		memo[canonical]= best
 		return best
-		
-		
-		
-		pass
-
+	
 	def heuristic1(self):
 		"""Basic heuristic: Count potential winning lines."""
 		score = 0
@@ -144,14 +140,9 @@ class Game():
 				score -= weights[line.count(HUMAN) - 1]
 		return score
 
-	def start(self):
-		self.state= [[0,0,0] for _ in range(3)]
-
 	def empty_cells(self):
-		return [[i, j] for i, row in enumerate(self.state)
-			for j, cell in enumerate(row)
-			if cell==EMPTY]
-
+		return [(y, x) for y in range(3) for x in range(3) if self.state[y][x]==EMPTY]
+	
 	def evaluate(self):
 		if self.wins(COMP):
 			return 1
@@ -175,40 +166,34 @@ class Game():
 	
 	def end(self):
 		return self.wins(HUMAN) or self.wins(COMP)
+
+	def play(self, move:tuple, player=HUMAN):
+		if move in self.empty_cells():
+			self.state[move[0]][move[1]]= player
+		else:
+			print('I got here')#TODO test if this is even reachable otherwise inline this code
 	
-	def input_ai(self):
+	def ai(self):
 		depth= len(self.empty_cells())
 		if depth==0 or self.end():
+			print('I got here')#TODO test if this is even reachable otherwise inline this code
 			return
 		
 		if   self.algo.get()=='Minimax':
-			move= self.minimax(depth, COMP)
-			print('using minimax')
+			move, _= self.minimax(depth)
 		elif self.algo.get()=='Minimax w/Alpha Beta':
-			move= self.minimax_alpha_beta(depth, -math.inf, math.inf, COMP)
-			print('using alpha beta')
+			move, _= self.minimax_abp(depth)
 		elif self.algo.get()=='Minimax w/Symmetry Reduction':
-			move= self.minimax_symmetry_reduction(depth,[], COMP)
-			print('using symmetry')
+			move= self.minimax_symmetry_reduction(depth)
 		elif self.algo.get()=='Hueristic 1':
 			move= self.heuristic1()
-			print('using hueristic1')
 		elif self.algo.get()=='Hueristic 2':
-			print('using hueristic2')
 			move= self.heuristic2()
-
 		else:
 			messagebox.showinfo('ERROR', 'No Algorithm Selected')
 			return
 
-		x, y= move[0], move[1]
-		self.state[x][y]= COMP
-
-	def input_human(self, x, y):
-		if [x, y] in self.empty_cells():
-			self.state[x][y]= HUMAN
-		else:
-			print('I got here')#TODO test if this is even reachable otherwise inline this code
+		self.play(move, COMP)
 
 class Application():
 	def __init__(self):
@@ -226,8 +211,7 @@ class Application():
 				'fg': '#EEEEEE',
 			},
 		]
-		bg= self.get_theme()['bg']
-		fg= self.get_theme()['fg']
+		bg= self.get_theme('bg')
 		self.root.config(bg=bg)
 		self.buttons= [[tk.Button(self.root, font=('Helvetica', 20), width=4, height=2) for _ in range(3)] for _ in range(3)]
 		self.game= Game()
@@ -276,7 +260,7 @@ class Application():
 	def start(self):
 		self.game.start()
 		if not messagebox.askyesno('New Game', 'Would you like to go first?'):
-			self.game.input_ai()
+			self.game.ai()
 		self.gui_render()
 
 	def gui_render(self):
@@ -290,26 +274,28 @@ class Application():
 					sym=''
 				self.buttons[i][j].config(text=sym, state='active' if sym=='' else 'disabled')
 
-	def gui_click(self, btn: tk.Button):
-		x, y= btn.grid_info()['row'], btn.grid_info()['column']
+		# self.cmd_clear()
+		# self.cmd_printState()
 
-		self.game.input_human(x, y)
+	def gui_click(self, btn: tk.Button):
+		move= btn.grid_info()['row'], btn.grid_info()['column']
+		self.game.play(move)
 		self.gui_render()
 		if self.game.end():
-			if messagebox.askyesno('Game Over', 'You Win!\nWould you like to go again?'):
-				self.start()
+			messagebox.showinfo('Game Over', 'You Win!')
+			self.start()
 			return
 		
-		self.game.input_ai()
+		self.game.ai()
 		self.gui_render()
 		if self.game.end():
-			if messagebox.askyesno('Game Over', 'You Lose!\nWould you like to go again?'):
-				self.start()
+			messagebox.showinfo('Game Over', 'You Lose!')
+			self.start()
 			return
 		
 		elif not self.game.empty_cells():
-			if messagebox.askyesno('Game Over', 'Tie!\nWould you like to go again?'):
-				self.start()
+			messagebox.showinfo('Game Over', 'Tie!')
+			self.start()
 			return
 
 	def new_game(self):
@@ -319,20 +305,31 @@ class Application():
 	def about(self):
 		messagebox.showinfo('Tic-Tac-Toe', 'AI project, Helwan University 2024')
 	
-	def get_theme(self):
-		return self.themes[self.darkmode]
+	def get_theme(self, element:str):
+		return self.themes[self.darkmode][element]
 	
 	def toggle_darkmode(self):
 		self.darkmode= not self.darkmode
-		bg= self.get_theme()['bg']
-		fg= self.get_theme()['fg']
+		bg= self.get_theme('bg')
+		fg= self.get_theme('fg')
 		self.root.config(background=bg, bg=bg)
 		for i in range(3):
 			for j in range(3):
 				self.buttons[i][j].config(bg=bg, fg=fg, activebackground=bg, activeforeground=fg, disabledforeground=fg)
 
-	# def cmd_clear(self):
-	# 	os.system('cls' if platform.system()=='Windows' else 'clear')
+	def cmd_clear(self):
+		os.system('cls' if platform.system()=='Windows' else 'clear')
+	
+	def cmd_printState(self):
+		for i in range(3):
+			for j in range(3):
+				if self.game.state[i][j]==HUMAN:
+					sym= 'X'
+				elif self.game.state[i][j]==COMP:
+					sym='O'
+				else:
+					sym=''
+				print(sym)
 
 if __name__=='__main__':
 	app= Application()
