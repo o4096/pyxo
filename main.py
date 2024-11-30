@@ -17,31 +17,85 @@ algorithms=[
 
 class Game():
 	def __init__(self):
-		self.algo= tk.StringVar(value=algorithms[0])
+		self.algo= tk.StringVar(value=algorithms[2])
 		self.start()
 
 	def start(self):
 		self.state= [[EMPTY, EMPTY, EMPTY] for _ in range(3)]
+
+	def wins(self, player):
+		win_state= [
+			[self.state[0][0], self.state[0][1], self.state[0][2]],  # [1,-1,0]
+			[self.state[1][0], self.state[1][1], self.state[1][2]],  # [0  -1  1]
+			[self.state[2][0], self.state[2][1], self.state[2][2]],  # [-1 -1  0]
+			[self.state[0][0], self.state[1][0], self.state[2][0]],  # [1 0 1]
+			[self.state[0][1], self.state[1][1], self.state[2][1]],  # [-1 -1 -1]
+			[self.state[0][2], self.state[1][2], self.state[2][2]],  # [0 1 0]
+			[self.state[0][0], self.state[1][1], self.state[2][2]],  # [1 -1 0]
+			[self.state[2][0], self.state[1][1], self.state[0][2]],  # [0 -1 -1]
+		]
+		return [player, player, player] in win_state
+	
+	def end(self):
+		return self.wins(HUMAN) or self.wins(COMP)
+	
+	def evaluation(self):
+		if self.wins(COMP):
+			return 1
+		elif self.wins(HUMAN):
+			return -1
+		else:
+			return 0
+
+	def empty_cells(self):
+		return [(y, x) for y in range(3) for x in range(3) if self.state[y][x]==EMPTY]
+	
+	def play(self, move:tuple, player=HUMAN):
+		self.state[move[0]][move[1]]= player
+		# if move in self.empty_cells():
+		# 	self.state[move[0]][move[1]]= player
+		# else:
+		# 	print('I got here')#TODO test if this is even reachable otherwise inline this code
+	
+	def ai(self):
+		depth= len(self.empty_cells())
+		if depth==0 or self.end():
+			return
+		
+		if   self.algo.get()=='Minimax':#TODO turn all of these into a single line
+			move, _= self.minimax(depth)
+		elif self.algo.get()=='Minimax w/Alpha Beta':
+			move, _= self.minimax_abp(depth)
+		elif self.algo.get()=='Minimax w/Symmetry Reduction':
+			move, _= self.minimax_sr(depth, checked={})
+		elif self.algo.get()=='Hueristic 1':
+			move= self.heuristic1()
+		elif self.algo.get()=='Hueristic 2':
+			move= self.heuristic2()
+		else:
+			messagebox.showinfo('ERROR', 'No Algorithm Selected')
+			return
+
+		self.play(move, COMP)
 
 	def minimax(self, depth, player=COMP):
 		best_move= None
 		best_score= float('-inf') if player==COMP else float('inf')
 	
 		if depth==0 or self.end():#base case
-			return best_move, self.evaluate()
+			return best_move, self.evaluation()
 
 		for y, x in self.empty_cells():
 			self.state[y][x]= player
-			move, score= self.minimax(depth-1, -player)
+			_, score= self.minimax(depth-1, -player)
 			self.state[y][x]= EMPTY
-			move= y, x
-			if player==COMP:#maximize the ai score				
+			if player==COMP:#maximize the ai score
 				if score>best_score:
-					best_move= move
+					best_move= (y, x)
 					best_score= score
 			else:#minimize the player score
 				if score<best_score:
-					best_move= move
+					best_move= (y, x)
 					best_score= score
 		return best_move, best_score
 
@@ -50,75 +104,71 @@ class Game():
 		best_score= float('-inf') if player==COMP else float('inf')
 
 		if depth==0 or self.end():#base case
-			return best_move, self.evaluate()
+			return best_move, self.evaluation()
 		
 		for y, x in self.empty_cells():
 			self.state[y][x]= player
-			move, score= self.minimax_abp(depth-1, -player, alpha, beta)
+			_, score= self.minimax_abp(depth-1, -player, alpha, beta)
 			self.state[y][x]= EMPTY
-			move= y, x
 			if player==COMP:#maximize the ai score
 				if score>best_score:
-					best_move= move
+					best_move= (y, x)
 					best_score= score
 				alpha= max(alpha, best_score)
 			else:#minimize the player score
 				if score<best_score:
-					best_move= move
+					best_move= (y, x)
 					best_score= score
 				beta= min(beta, best_score)
 			if beta<=alpha:
 				break
 		return best_move, best_score
-
-	def canonical_form(self, state):
-		"""
-		Generate the canonical form of the board state.
-		Find the lexicographically smallest form among rotations and reflections.
-		"""
-		transformations= [state]
-
-		# Generate rotations (90, 180, 270 degrees)
-		for _ in range(3):
-			state= list(zip(*state[::-1]))  # Rotate 90 degrees clockwise
-			transformations.append(state)
-
-		# Reflect horizontally
-		reflected= [row[::-1] for row in state]
-		transformations.append(reflected)
-
-		# Reflect vertically
-		reflected= state[::-1]
-		transformations.append(reflected)
-
-		# Return the lexicographically smallest state
-		return min(transformations, key=lambda s: str(s))
-	
-	def minimax_symmetry_reduction(self, depth, player=COMP, memo=[]):
-		canonical= self.canonical_form(self.state)
-		if canonical in memo:
-			return memo[canonical]
 		
-		best= [-1, -1, float('-inf') if player==COMP else float('inf')]
+	def _get_symmetries(self, state):
+		syms= [tuple(state)]
+
+		for _ in range(3):#rotate 90, 180, 270 deg clockwise
+			state= list(zip(*state[::-1]))#rotate 90 deg clockwise
+			syms.append(state)
+		# state= list(zip(*state[::-1]))#return back to original form (360)
+		syms.append([row[::-1] for row in state])#horizontal flip
+		syms.append(state[::-1])#vertical flip
+		return tuple(syms)
+
+	def _get_lexical_form(self, state):
+		return ''.join(str(cell) for row in state for cell in row)
+	
+	def _get_canonical_form(self, state):
+		syms= self._get_symmetries(state)
+		# return min(tuple(map(tuple, sym)) for sym in syms)
+		return min(self._get_lexical_form(sym) for sym in syms)#return smallest lexical state
+
+	def minimax_sr(self, depth, player=COMP, checked:dict={}):
+		best_move= None
+		best_score= float('-inf') if player==COMP else float('inf')
+		canonical= self._get_canonical_form(self.state)
+
+		if canonical in checked.keys():#quick base case
+			return best_move, checked[canonical]
 
 		if depth==0 or self.end():#base case
-			return [-1, -1, self.evaluate()]
+			return best_move, self.evaluation()
+		
+		for y, x in self.empty_cells():
+			self.state[y][x]= player
+			_, score= self.minimax_sr(depth-1, -player, checked)
+			self.state[y][x]= EMPTY
+			if player==COMP:#maximize the ai score				
+				if score>best_score:
+					best_move= (y, x)
+					best_score= score
+			else:#minimize the player score
+				if score<best_score:
+					best_move= (y, x)
+					best_score= score
+		checked[canonical]= best_score
+		return best_move, best_score
 
-		for cell in self.empty_cells():
-			x, y= cell[0], cell[1]
-			self.state[x][y]= player
-			score= self.minimax_symmetry_reduction(depth-1, -player, memo)
-			self.state[x][y]= 0
-			score[0], score[1]= x, y
-			if player==COMP:
-				if score[2]>best[2]:
-					best= score #max value
-			else:
-				if score[2]<best[2]:
-					best= score #min value
-		memo[canonical]= best
-		return best
-	
 	def heuristic1(self):
 		"""Basic heuristic: Count potential winning lines."""
 		score = 0
@@ -139,61 +189,6 @@ class Game():
 			if line.count(HUMAN) > 0 and line.count(COMP) == 0:
 				score -= weights[line.count(HUMAN) - 1]
 		return score
-
-	def empty_cells(self):
-		return [(y, x) for y in range(3) for x in range(3) if self.state[y][x]==EMPTY]
-	
-	def evaluate(self):
-		if self.wins(COMP):
-			return 1
-		elif self.wins(HUMAN):
-			return -1
-		else:
-			return 0
-
-	def wins(self, player):
-		win_state= [
-			[self.state[0][0], self.state[0][1], self.state[0][2]],  # [1,-1,0]
-			[self.state[1][0], self.state[1][1], self.state[1][2]],  # [0  -1  1]
-			[self.state[2][0], self.state[2][1], self.state[2][2]],  # [-1 -1  0]
-			[self.state[0][0], self.state[1][0], self.state[2][0]],  # [1 0 1]
-			[self.state[0][1], self.state[1][1], self.state[2][1]],  # [-1 -1 -1]
-			[self.state[0][2], self.state[1][2], self.state[2][2]],  # [0 1 0]
-			[self.state[0][0], self.state[1][1], self.state[2][2]],  # [1 -1 0]
-			[self.state[2][0], self.state[1][1], self.state[0][2]],  # [0 -1 -1]
-		]
-		return [player, player, player] in win_state
-	
-	def end(self):
-		return self.wins(HUMAN) or self.wins(COMP)
-
-	def play(self, move:tuple, player=HUMAN):
-		if move in self.empty_cells():
-			self.state[move[0]][move[1]]= player
-		else:
-			print('I got here')#TODO test if this is even reachable otherwise inline this code
-	
-	def ai(self):
-		depth= len(self.empty_cells())
-		if depth==0 or self.end():
-			print('I got here')#TODO test if this is even reachable otherwise inline this code
-			return
-		
-		if   self.algo.get()=='Minimax':
-			move, _= self.minimax(depth)
-		elif self.algo.get()=='Minimax w/Alpha Beta':
-			move, _= self.minimax_abp(depth)
-		elif self.algo.get()=='Minimax w/Symmetry Reduction':
-			move= self.minimax_symmetry_reduction(depth)
-		elif self.algo.get()=='Hueristic 1':
-			move= self.heuristic1()
-		elif self.algo.get()=='Hueristic 2':
-			move= self.heuristic2()
-		else:
-			messagebox.showinfo('ERROR', 'No Algorithm Selected')
-			return
-
-		self.play(move, COMP)
 
 class Application():
 	def __init__(self):
@@ -320,7 +315,7 @@ class Application():
 	def cmd_clear(self):
 		os.system('cls' if platform.system()=='Windows' else 'clear')
 	
-	def cmd_printState(self):
+	def cmd_printState(self):#TODO
 		for i in range(3):
 			for j in range(3):
 				if self.game.state[i][j]==HUMAN:
