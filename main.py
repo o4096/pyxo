@@ -6,7 +6,7 @@ from tkinter import messagebox
 
 EMPTY= 0
 HUMAN= -1
-COMP=  1
+AI=  1
 algorithms=[
 	'Minimax',
 	'Minimax w/Alpha Beta',
@@ -25,22 +25,22 @@ class Game():
 
 	def wins(self, player):
 		win_state= [
-			[self.state[0][0], self.state[0][1], self.state[0][2]],  # [1,-1,0]
-			[self.state[1][0], self.state[1][1], self.state[1][2]],  # [0  -1  1]
-			[self.state[2][0], self.state[2][1], self.state[2][2]],  # [-1 -1  0]
-			[self.state[0][0], self.state[1][0], self.state[2][0]],  # [1 0 1]
-			[self.state[0][1], self.state[1][1], self.state[2][1]],  # [-1 -1 -1]
-			[self.state[0][2], self.state[1][2], self.state[2][2]],  # [0 1 0]
-			[self.state[0][0], self.state[1][1], self.state[2][2]],  # [1 -1 0]
-			[self.state[2][0], self.state[1][1], self.state[0][2]],  # [0 -1 -1]
+			[self.state[0][0], self.state[0][1], self.state[0][2]],#top row
+			[self.state[1][0], self.state[1][1], self.state[1][2]],#middle row
+			[self.state[2][0], self.state[2][1], self.state[2][2]],#bottom row
+			[self.state[0][0], self.state[1][0], self.state[2][0]],#left column
+			[self.state[0][1], self.state[1][1], self.state[2][1]],#middle column
+			[self.state[0][2], self.state[1][2], self.state[2][2]],#right column
+			[self.state[0][0], self.state[1][1], self.state[2][2]],#main diagonal
+			[self.state[2][0], self.state[1][1], self.state[0][2]],#other diagonal
 		]
 		return [player, player, player] in win_state
 	
 	def end(self):
-		return self.wins(HUMAN) or self.wins(COMP)
+		return self.wins(HUMAN) or self.wins(AI)
 	
-	def evaluation(self):
-		if self.wins(COMP):
+	def evaluation(self):#TODO inline this or something
+		if self.wins(AI):
 			return 1
 		elif self.wins(HUMAN):
 			return -1
@@ -67,20 +67,20 @@ class Game():
 		elif self.algo.get()=='Minimax w/Alpha Beta':
 			move, _= self.minimax_abp(depth)
 		elif self.algo.get()=='Minimax w/Symmetry Reduction':
-			move, _= self.minimax_sr(depth, checked={})
+			move, _= self.minimax_sr(depth)
 		elif self.algo.get()=='Hueristic 1':
-			move= self.heuristic1()
+			move, _= self.heuristic1()
 		elif self.algo.get()=='Hueristic 2':
-			move= self.heuristic2()
-		else:
+			move, _= self.heuristic2()
+		else:#this code is unreachable so long as self.algo is initialized
 			messagebox.showinfo('ERROR', 'No Algorithm Selected')
 			return
 
-		self.play(move, COMP)
+		self.play(move, AI)
 
-	def minimax(self, depth, player=COMP):
+	def minimax(self, depth, player=AI):
 		best_move= None
-		best_score= float('-inf') if player==COMP else float('inf')
+		best_score= float('-inf') if player==AI else float('inf')
 	
 		if depth==0 or self.end():#base case
 			return best_move, self.evaluation()
@@ -89,19 +89,14 @@ class Game():
 			self.state[y][x]= player
 			_, score= self.minimax(depth-1, -player)
 			self.state[y][x]= EMPTY
-			if player==COMP:#maximize the ai score
-				if score>best_score:
-					best_move= (y, x)
-					best_score= score
-			else:#minimize the player score
-				if score<best_score:
-					best_move= (y, x)
-					best_score= score
+			if(best_score<score if player==AI else best_score>score):#maximize ai, minimize player
+				best_move= (y, x)
+				best_score= score
 		return best_move, best_score
 
-	def minimax_abp(self, depth, player=COMP, alpha=float('-inf'), beta=float('inf')):
+	def minimax_abp(self, depth, player=AI, alpha=float('-inf'), beta=float('inf')):
 		best_move= None
-		best_score= float('-inf') if player==COMP else float('inf')
+		best_score= float('-inf') if player==AI else float('inf')
 
 		if depth==0 or self.end():#base case
 			return best_move, self.evaluation()
@@ -110,20 +105,17 @@ class Game():
 			self.state[y][x]= player
 			_, score= self.minimax_abp(depth-1, -player, alpha, beta)
 			self.state[y][x]= EMPTY
-			if player==COMP:#maximize the ai score
-				if score>best_score:
-					best_move= (y, x)
-					best_score= score
+			if(best_score<score if player==AI else best_score>score):#maximize ai, minimize player
+				best_move= (y, x)
+				best_score= score
+			if player==AI:
 				alpha= max(alpha, best_score)
-			else:#minimize the player score
-				if score<best_score:
-					best_move= (y, x)
-					best_score= score
+			else:
 				beta= min(beta, best_score)
 			if beta<=alpha:
 				break
 		return best_move, best_score
-		
+
 	def _get_symmetries(self, state):
 		syms= [tuple(state)]
 
@@ -136,16 +128,18 @@ class Game():
 		return tuple(syms)
 
 	def _get_lexical_form(self, state):
+		'''returns an in order string representation of board state'''
 		return ''.join(str(cell) for row in state for cell in row)
-	
+
 	def _get_canonical_form(self, state):
 		syms= self._get_symmetries(state)
 		# return min(tuple(map(tuple, sym)) for sym in syms)
 		return min(self._get_lexical_form(sym) for sym in syms)#return smallest lexical state
 
-	def minimax_sr(self, depth, player=COMP, checked:dict={}):
+	def minimax_sr(self, depth, player=AI, checked:dict=None):
 		best_move= None
-		best_score= float('-inf') if player==COMP else float('inf')
+		best_score= float('-inf') if player==AI else float('inf')
+		if checked==None: checked= {}
 		canonical= self._get_canonical_form(self.state)
 
 		if canonical in checked.keys():#quick base case
@@ -158,35 +152,40 @@ class Game():
 			self.state[y][x]= player
 			_, score= self.minimax_sr(depth-1, -player, checked)
 			self.state[y][x]= EMPTY
-			if player==COMP:#maximize the ai score				
-				if score>best_score:
-					best_move= (y, x)
-					best_score= score
-			else:#minimize the player score
-				if score<best_score:
-					best_move= (y, x)
-					best_score= score
+			if(best_score<score if player==AI else best_score>score):#maximize ai, minimize player
+				best_move= (y, x)
+				best_score= score
 		checked[canonical]= best_score
 		return best_move, best_score
 
-	def heuristic1(self):
-		"""Basic heuristic: Count potential winning lines."""
-		score = 0
-		for line in self.get_win_lines():
-			if line.count(COMP) > 0 and line.count(HUMAN) == 0:
-				score += 1
-			if line.count(HUMAN) > 0 and line.count(COMP) == 0:
-				score -= 1
-		return score
+	def heuristic1(self, depth=4, player=AI):#TODO test edge cases
+		best_move= None
+		best_score= float('-inf') if player==AI else float('inf')
+	
+		if   self.wins(AI):#heuristic evaluation
+			return best_move, 10
+		elif self.wins(HUMAN):
+			return best_move, -10
+		if depth==0:
+			return best_move, 0
+
+		for y, x in self.empty_cells():
+			self.state[y][x]= player
+			_, score= self.heuristic1(depth-1, -player)
+			self.state[y][x]= EMPTY
+			if(best_score<score if player==AI else best_score>score):#maximize ai, minimize player
+				best_move= (y, x)
+				best_score= score
+		return best_move, best_score
 
 	def heuristic2(self):
 		"""Advanced heuristic: Weighted evaluation of game state."""
 		score = 0
 		weights = [3, 2, 1]  # Example weights for positions closer to forming lines
 		for line in self.get_win_lines():
-			if line.count(COMP) > 0 and line.count(HUMAN) == 0:
-				score += weights[line.count(COMP) - 1]
-			if line.count(HUMAN) > 0 and line.count(COMP) == 0:
+			if line.count(AI) > 0 and line.count(HUMAN) == 0:
+				score += weights[line.count(AI) - 1]
+			if line.count(HUMAN) > 0 and line.count(AI) == 0:
 				score -= weights[line.count(HUMAN) - 1]
 		return score
 
@@ -263,7 +262,7 @@ class Application():
 			for j in range(3):
 				if self.game.state[i][j]==HUMAN:
 					sym= 'X'
-				elif self.game.state[i][j]==COMP:
+				elif self.game.state[i][j]==AI:
 					sym='O'
 				else:
 					sym=''
@@ -320,7 +319,7 @@ class Application():
 			for j in range(3):
 				if self.game.state[i][j]==HUMAN:
 					sym= 'X'
-				elif self.game.state[i][j]==COMP:
+				elif self.game.state[i][j]==AI:
 					sym='O'
 				else:
 					sym=''
