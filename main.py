@@ -71,7 +71,7 @@ class Game():
 		elif self.algo.get()=='Hueristic 1':
 			move, _= self.heuristic1()
 		elif self.algo.get()=='Hueristic 2':
-			move, _= self.heuristic2()
+			move= self.heuristic2()
 		else:#this code is unreachable so long as self.algo is initialized
 			messagebox.showinfo('ERROR', 'No Algorithm Selected')
 			return
@@ -179,15 +179,55 @@ class Game():
 		return best_move, best_score
 
 	def heuristic2(self):
-		"""Advanced heuristic: Weighted evaluation of game state."""
+		best_score = -float('inf')
+		best_move = None
+
+		for y, x in self.empty_cells():
+			self.state[y][x] = AI
+			score = self.evaluate_position(y, x)
+			self.state[y][x] = EMPTY
+
+			if score > best_score:
+				best_score = score
+				best_move = (y, x)
+
+		return best_move
+
+	def evaluate_position(self, y, x):
 		score = 0
-		weights = [3, 2, 1]  # Example weights for positions closer to forming lines
+		weights = [3, 2, 1]
+
 		for line in self.get_win_lines():
-			if line.count(AI) > 0 and line.count(HUMAN) == 0:
-				score += weights[line.count(AI) - 1]
-			if line.count(HUMAN) > 0 and line.count(AI) == 0:
-				score -= weights[line.count(HUMAN) - 1]
+			if (y, x) in line:
+				comp_count = 0
+				human_count = 0
+				for i, j in line:
+					if self.state[i][j] == AI:
+						comp_count += 1
+					elif self.state[i][j] == HUMAN:
+						human_count += 1
+
+				if comp_count > 0 and human_count == 0:
+					score += weights[comp_count - 1]
+				elif human_count > 0 and comp_count == 0:
+					score -= weights[human_count - 1]
+
 		return score
+	def get_win_lines(self):
+		# Define the lines representing possible wins
+		return [
+			# Rows
+			[(0, 0), (0, 1), (0, 2)],
+			[(1, 0), (1, 1), (1, 2)],
+			[(2, 0), (2, 1), (2, 2)],
+			# Columns
+			[(0, 0), (1, 0), (2, 0)],
+			[(0, 1), (1, 1), (2, 1)],
+			[(0, 2), (1, 2), (2, 2)],
+			# Diagonals
+			[(0, 0), (1, 1), (2, 2)],
+			[(0, 2), (1, 1), (2, 0)],
+		]
 
 class Application():
 	def __init__(self):
