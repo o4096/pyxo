@@ -178,34 +178,56 @@ class Game():
 				best_score= score
 		return best_move, best_score
 
-	def _count_winning_lines(self, player=AI):
-		lines= 0
-		# Check rows, columns, and diagonals for potential wins
-		for i in range(3):
-			if self.state[i].count(player)==2 and self.state[i].count(EMPTY)==1:
-				lines+= 1
-			if [self.state[j][i] for j in range(3)].count(player)==2 and [self.state[j][i] for j in range(3)].count(EMPTY)==1:
-				lines+= 1
-			if [self.state[i][i] for i in range(3)].count(player)==2 and [self.state[i][i] for i in range(3)].count(EMPTY)==1:
-				lines+= 1
-			if [self.state[i][2-i] for i in range(3)].count(player)==2 and [self.state[i][2-i] for i in range(3)].count(EMPTY)==1:
-				lines+= 1
-		return lines
-	
-	def _count_winning_lines_heuristic(self):
-		return self._count_winning_lines(AI)-self._count_winning_lines(HUMAN)
-	
-	def heuristic2(self, player=AI):#TODO test edge cases
-		best_move= None
-		best_score= -1
+	def heuristic2(self):
+		best_score = -float('inf')
+		best_move = None
+
 		for y, x in self.empty_cells():
-			self.state[y][x]= player
-			score= self._count_winning_lines_heuristic()
-			self.state[y][x]= EMPTY
-			if best_score<score:
-				best_score= score
-				best_move= (y, x)
+			self.state[y][x] = AI
+			score = self.evaluate_position(y, x)
+			self.state[y][x] = EMPTY
+
+			if score > best_score:
+				best_score = score
+				best_move = (y, x)
+
 		return best_move
+
+	def evaluate_position(self, y, x):
+		score = 0
+		weights = [3, 2, 1]
+
+		for line in self.get_win_lines():
+			if (y, x) in line:
+				comp_count = 0
+				human_count = 0
+				for i, j in line:
+					if self.state[i][j] == AI:
+						comp_count += 1
+					elif self.state[i][j] == HUMAN:
+						human_count += 1
+
+				if comp_count > 0 and human_count == 0:
+					score += weights[comp_count - 1]
+				elif human_count > 0 and comp_count == 0:
+					score -= weights[human_count - 1]
+
+		return score
+	def get_win_lines(self):
+		# Define the lines representing possible wins
+		return [
+			# Rows
+			[(0, 0), (0, 1), (0, 2)],
+			[(1, 0), (1, 1), (1, 2)],
+			[(2, 0), (2, 1), (2, 2)],
+			# Columns
+			[(0, 0), (1, 0), (2, 0)],
+			[(0, 1), (1, 1), (2, 1)],
+			[(0, 2), (1, 2), (2, 2)],
+			# Diagonals
+			[(0, 0), (1, 1), (2, 2)],
+			[(0, 2), (1, 1), (2, 0)],
+		]
 
 class Application():
 	def __init__(self):
