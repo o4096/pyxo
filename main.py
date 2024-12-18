@@ -12,8 +12,10 @@ algorithms=[
 	'Minimax',
 	'Minimax w/Alpha Beta',
 	'Minimax w/Symmetry Reduction',
-	'Hueristic 1',
-	'Hueristic 2',
+	'Minimax w/Depth Limitation',
+	'Hueristic: Count Win Lines',
+	'Hueristic: Line Prioritization',
+	'Hueristic: Fork',
 ]
 
 class Game():
@@ -70,10 +72,14 @@ class Game():
 			move, _= self.minimax_abp(depth)
 		elif self.algo.get()=='Minimax w/Symmetry Reduction':
 			move, _= self.minimax_sr(depth)
-		elif self.algo.get()=='Hueristic 1':
-			move, _= self.heuristic1()
-		elif self.algo.get()=='Hueristic 2':
-			move= self.heuristic2()
+		elif self.algo.get()=='Minimax w/Depth Limitation':
+			move, _= self.minimax_limited_depth()
+		elif self.algo.get()=='Hueristic: Count Win Lines':
+			move= self.heuristic_count_winlines()
+		elif self.algo.get()=='Hueristic: Line Prioritization':
+			move= self.heuristic_line_prioritization()
+		elif self.algo.get()=='Hueristic: Fork':
+			move= self.heuristic_fork()
 		else:#this code is unreachable so long as self.algo is initialized
 			messagebox.showinfo('ERROR', 'No Algorithm Selected')
 			return
@@ -163,8 +169,7 @@ class Game():
 		checked[canonical]= best_score
 		return best_move, best_score
 
-	#depth limitation
-	def heuristic1(self, depth=4, player=AI):
+	def minimax_limited_depth(self, depth=4, player=AI):
 		best_move= None
 		best_score= float('-inf') if player==AI else float('inf')
 	
@@ -177,27 +182,13 @@ class Game():
 
 		for y, x in self.empty_cells():
 			self.state[y][x]= player
-			_, score= self.heuristic1(depth-1, -player)
+			_, score= self.minimax_limited_depth(depth-1, -player)
 			self.state[y][x]= EMPTY
 			if(best_score<score if player==AI else best_score>score):#maximize ai, minimize player
 				best_move= (y, x)
 				best_score= score
 		return best_move, best_score
-
-	def heuristic2(self):
-		best_score = -float('inf')
-		best_move = None
-
-		for y, x in self.empty_cells():
-			self.state[y][x] = AI
-			score = self.evaluate_position(y, x)
-			self.state[y][x] = EMPTY
-
-			if score > best_score:
-				best_score = score
-				best_move = (y, x)
-		return best_move
-
+	
 	def evaluate_position(self, y, x):
 		score = 0
 		weights = [3, 2, 1]
@@ -233,6 +224,73 @@ class Game():
 			[(0, 0), (1, 1), (2, 2)],
 			[(0, 2), (1, 1), (2, 0)],
 		]
+	
+	def heuristic_count_winlines(self):
+		best_score = -float('inf')
+		best_move = None
+
+		for y, x in self.empty_cells():
+			self.state[y][x] = AI
+			score = self.evaluate_position(y, x)
+			self.state[y][x] = EMPTY
+
+			if score > best_score:
+				best_score = score
+				best_move = (y, x)
+		return best_move
+
+	def heuristic_line_prioritization(self):
+		best_move = None
+		best_score = -float('inf')
+
+		for y, x in self.empty_cells():
+			self.state[y][x] = AI
+			score = 0
+
+			for line in self.get_win_lines():
+				ai_count = sum(1 for i, j in line if self.state[i][j] == AI)
+				human_count = sum(1 for i, j in line if self.state[i][j] == HUMAN)
+
+				if human_count == 0:  # Favor lines with no HUMAN pieces
+					score += ai_count ** 2  # Exponential weighting
+				elif ai_count == 0:  # Penalize lines with no AI pieces
+					score -= human_count ** 2
+
+			self.state[y][x] = EMPTY  # Undo move
+			if score > best_score:
+				best_score = score
+				best_move = (y, x)
+		return best_move
+
+	def heuristic_fork(self):
+		best_move = None
+		best_score = 0
+
+		for y, x in self.empty_cells():
+			# Simulate AI move
+			self.state[y][x] = AI
+			ai_threats = self.count_potential_wins(AI)
+
+			# Simulate HUMAN move for blocking
+			self.state[y][x] = HUMAN
+			human_threats = self.count_potential_wins(HUMAN)
+
+			# Evaluate the move
+			score = ai_threats - human_threats
+			if score > best_score:
+				best_score = score
+				best_move = (y, x)
+
+			self.state[y][x] = EMPTY  # Undo move
+
+		return best_move if best_move else self.heuristic_count_winlines()
+
+	def count_potential_wins(self, player):
+		count = 0
+		for line in self.get_win_lines():
+			if all(self.state[i][j] in [EMPTY, player] for i, j in line):
+				count += 1
+		return count
 
 class Application():
 	def __init__(self):
