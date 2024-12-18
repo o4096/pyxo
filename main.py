@@ -39,7 +39,7 @@ class Game():
 	def end(self):
 		return self.wins(HUMAN) or self.wins(AI)
 	
-	def evaluation(self):#TODO inline this or something
+	def evaluation(self):
 		if self.wins(AI):
 			return 1
 		elif self.wins(HUMAN):
@@ -62,7 +62,7 @@ class Game():
 		if depth==0 or self.end():
 			return
 		
-		if   self.algo.get()=='Minimax':#TODO turn all of these into a single line
+		if   self.algo.get()=='Minimax':
 			move, _= self.minimax(depth)
 		elif self.algo.get()=='Minimax w/Alpha Beta':
 			move, _= self.minimax_abp(depth)
@@ -158,7 +158,8 @@ class Game():
 		checked[canonical]= best_score
 		return best_move, best_score
 
-	def heuristic1(self, depth=4, player=AI):#TODO test edge cases
+	#depth limitation
+	def heuristic1(self, depth=4, player=AI):#TODO test edge cases 
 		best_move= None
 		best_score= float('-inf') if player==AI else float('inf')
 	
@@ -166,7 +167,7 @@ class Game():
 			return best_move, 10
 		elif self.wins(HUMAN):
 			return best_move, -10
-		if depth==0:
+		if depth==0 or not self.empty_cells():
 			return best_move, 0
 
 		for y, x in self.empty_cells():
@@ -190,7 +191,6 @@ class Game():
 			if score > best_score:
 				best_score = score
 				best_move = (y, x)
-
 		return best_move
 
 	def evaluate_position(self, y, x):
@@ -211,8 +211,8 @@ class Game():
 					score += weights[comp_count - 1]
 				elif human_count > 0 and comp_count == 0:
 					score -= weights[human_count - 1]
-
 		return score
+
 	def get_win_lines(self):
 		# Define the lines representing possible wins
 		return [
