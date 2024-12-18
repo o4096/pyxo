@@ -3,6 +3,7 @@ import platform
 from functools import partial
 import tkinter as tk
 from tkinter import messagebox
+import time
 
 EMPTY= 0
 HUMAN= -1
@@ -62,6 +63,7 @@ class Game():
 		if depth==0 or self.end():
 			return
 		
+		t0= time.time()
 		if   self.algo.get()=='Minimax':
 			move, _= self.minimax(depth)
 		elif self.algo.get()=='Minimax w/Alpha Beta':
@@ -75,6 +77,9 @@ class Game():
 		else:#this code is unreachable so long as self.algo is initialized
 			messagebox.showinfo('ERROR', 'No Algorithm Selected')
 			return
+
+		t= time.time()-t0
+		print(f'time: {t} seconds')
 
 		self.play(move, AI)
 
@@ -159,7 +164,7 @@ class Game():
 		return best_move, best_score
 
 	#depth limitation
-	def heuristic1(self, depth=4, player=AI):#TODO test edge cases 
+	def heuristic1(self, depth=4, player=AI):
 		best_move= None
 		best_score= float('-inf') if player==AI else float('inf')
 	
