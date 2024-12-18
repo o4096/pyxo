@@ -173,12 +173,8 @@ class Game():
 		best_move= None
 		best_score= float('-inf') if player==AI else float('inf')
 	
-		if   self.wins(AI):#heuristic evaluation
-			return best_move, 10
-		elif self.wins(HUMAN):
-			return best_move, -10
-		if depth==0 or not self.empty_cells():
-			return best_move, 0
+		if depth==0 or self.end() or not self.empty_cells():#base case
+			return best_move, self.evaluation()
 
 		for y, x in self.empty_cells():
 			self.state[y][x]= player
@@ -277,7 +273,7 @@ class Game():
 
 			# Evaluate the move
 			score = ai_threats - human_threats
-			if score > best_score:
+			if best_score<score:
 				best_score = score
 				best_move = (y, x)
 
